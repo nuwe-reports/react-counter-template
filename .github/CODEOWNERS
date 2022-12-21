@@ -1,0 +1,4 @@
+sonar-project.properties                 @team-nuwe
+/.github/**                              @team-nuwe
+/src/App.test.js                         @team-nuwe
+/src/setupTests.js                       @team-nuwe
