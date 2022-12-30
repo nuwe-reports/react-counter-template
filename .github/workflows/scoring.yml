@@ -9,6 +9,8 @@ jobs:
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+      PROJECT_ID: ${{ github.event.repository.name }}
     runs-on: ubuntu-latest
     
     steps:
@@ -20,7 +22,7 @@ jobs:
           yarn
           yarn test --json --watchAll=false --coverage --outputFile=output.json
           
-      - name: Read JSON
+      - name: Update solution
         if: always()
         uses: actions/github-script@v6
         with:
@@ -34,9 +36,14 @@ jobs:
               output.testResults[0].assertionResults.forEach((objective, i) => {
                 if (objective.status === 'passed') assertionResults.push(i)
               })
-              console.log(`?numPassedTests=${output.numPassedTests}&numTotalTests=${output.numTotalTests}&assertionResults=${JSON.stringify(assertionResults)}`)
+              console.log('Updating score...')
+              await github.request(`PATCH https://api.nuwe.io/projects/${process.env.PROJECT_ID}/objectives`, {
+                bearerToken: process.env.PERSONAL_TOKEN, 
+                assertionResults
+              })
+              console.log('Done')
             } catch(err) {
-              core.error("Error while reading or parsing the JSON")
+              core.error("Error while reading or parsing the output JSON")
               core.setFailed(err)
             }
       - name: SonarQube scan 🚨
