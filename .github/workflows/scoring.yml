@@ -18,8 +18,27 @@ jobs:
       - name: Generate coverage
         run: |
           yarn
-          yarn test --watchAll=false --coverage
-
+          yarn test --json --watchAll=false --coverage --outputFile=output.json
+          
+      - name: Read JSON
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            try {
+              const fs = require('fs')
+              const jsonString = fs.readFileSync('./output.json')
+              const output = JSON.parse(jsonString)
+              const assertionResults = []
+              output.testResults[0].assertionResults.forEach((objective, i) => {
+                if (objective.status === 'passed') assertionResults.push(i)
+              })
+              console.log(`?numPassedTests=${output.numPassedTests}&numTotalTests=${output.numTotalTests}&assertionResults=${JSON.stringify(assertionResults)}`)
+            } catch(err) {
+              core.error("Error while reading or parsing the JSON")
+              core.setFailed(err)
+            }
       - name: SonarQube scan 🚨
         if: always()
         uses: sonarsource/sonarqube-scan-action@master
